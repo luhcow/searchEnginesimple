@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
   std::ifstream ifs("../test/testdata/news_content.2");
   std::istreambuf_iterator<char> beg(ifs), end;
   string s2(beg, end);
+  
   vector<pair<string, double> > res2;
   size_t topN2 = 1000;
   uint64_t u642 = 0;

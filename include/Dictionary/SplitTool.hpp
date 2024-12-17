@@ -6,8 +6,7 @@
 
 class SplitTool {
  public:
-  std::vector<std::string> cut() {
-  }
+  virtual std::vector<std::string> cut() = 0;
 };
 
 #endif

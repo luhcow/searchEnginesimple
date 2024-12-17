@@ -5,6 +5,8 @@ if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 11)
 endif()
 
+set(CMAKE_CXX_FLAGS -Wunused-variable)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${SearchEngine_SOURCE_DIR}/bin)
 
 # Add these lines to set up include directories
@@ -29,6 +31,9 @@ add_executable(SearchEngine src/main.cpp)
 add_executable(WebServer src/WebServer.cc)
 target_link_libraries(WebServer wfrest ${LIBEVENT_LIBRARIES} pthread dl wfkafka z snappy lz4 zstd ${WORKFLOW_LIB}) 
 
-ADD_EXECUTABLE(demo src/demo.cpp)
+add_executable(RedisCli src/redis_cli.cc)
+target_link_libraries(RedisCli ${WORKFLOW_LIB})
 
+ADD_EXECUTABLE(simhash src/simhash.cpp)
 
+add_executable(jieba src/jieba.cpp)
