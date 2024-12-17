@@ -2,6 +2,7 @@
 #define SG_PAGE_H__
 
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -51,7 +52,8 @@ class PageLibPreprocessor {
  private:
   std::vector<WebPage> page_list_;
   std::unordered_map<int, std::pair<int, int>> offset_lib_;
-  std::unordered_map<int, std::pair<int, int>> invert_index_lib_;
+  std::unordered_map<std::string, std::set<std::pair<int, double>>>
+      invert_index_lib_;
   SplitTool* word_cutter_;
 };
 
