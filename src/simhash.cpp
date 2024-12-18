@@ -1,3 +1,4 @@
+#include <climits>
 #include <fstream>
 #include <iostream>
 
@@ -20,13 +21,14 @@ int main(int argc, char** argv) {
   cout << "文本：\"" << s << "\"" << endl;
   cout << "关键词序列是: " << res << endl;
   cout << "simhash值是: " << u64 << endl;
+  cout << (14769886308824657336 >= LONG_MAX) << endl;
 
   Simhasher content;
 
   std::ifstream ifs("../test/testdata/news_content.2");
   std::istreambuf_iterator<char> beg(ifs), end;
   string s2(beg, end);
-  
+
   vector<pair<string, double> > res2;
   size_t topN2 = 1000;
   uint64_t u642 = 0;

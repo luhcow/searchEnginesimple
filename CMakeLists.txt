@@ -13,7 +13,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${SearchEngine_SOURCE_DIR}/bin)
 
 include_directories(${SearchEngine_SOURCE_DIR}/include 
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/include
-	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/deps/limonp/include)
+	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/deps/limonp/include
+	${SearchEngine_SOURCE_DIR}/submodules/tinyxml2)
 
 find_library(LIBRT rt)
 find_package(OpenSSL REQUIRED)
@@ -44,3 +45,8 @@ target_link_libraries(keyWord fmt )
 
 add_executable(keyServer src/KeyServer.cc)
 target_link_libraries(keyServer wfrest fmt)
+
+add_executable(xml src/xmlParseForRSS.cc submodules/tinyxml2/tinyxml2.cpp)
+
+add_executable(page src/page.cc submodules/tinyxml2/tinyxml2.cpp)
+target_link_libraries(page fmt)

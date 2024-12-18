@@ -25,7 +25,6 @@
 #include <utility>
 #include <vector>
 
-#include "Dictionary/SplitTool.hpp"
 #include "cppjieba/Jieba.hpp"
 #include "ihsah.hpp"
 #include "json.hpp"
@@ -202,7 +201,6 @@ class DictProducer {
   std::set<std::string> stop_;
   std::vector<std::pair<std::string, int>> dict_;
   std::map<int, std::set<int>> index_;
-  SplitTool* cuttor_;
   cppjieba::Jieba jieba_;
   int zone_;
   std::string dat_file_;
