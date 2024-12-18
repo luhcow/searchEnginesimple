@@ -2,27 +2,37 @@
 #define SG_DICTPRODUCER_H__
 
 #include <fcntl.h>
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <atomic>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/utility.hpp>
+#include <cereal/types/vector.hpp>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <map>
 #include <regex>
 #include <set>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
 #include "Dictionary/SplitTool.hpp"
-#include "Page/Configuration.hpp"
 #include "cppjieba/Jieba.hpp"
 #include "ihsah.hpp"
 #include "json.hpp"
 #include "readAll.hpp"
 #include "utf8.h"
-#include "utf8/checked.h"
+#include "utf8/core.h"
+#include "utf8/cpp11.h"
 
 namespace dictionary {
 
@@ -51,7 +61,7 @@ class SplitToolCppJieba {
       auto it = i.begin();
       int cp = utf8::next(it, i.end());
       if (cp <= 0x9fa5 && cp >= 0x4e00) {
-        if (stop.find(i) != stop.end()) {
+        if (stop.find(i) == stop.end()) {
           auto t = iHash::Hash(i) % zone;
           true_words[t].push_back(i);
         }
@@ -62,7 +72,7 @@ class SplitToolCppJieba {
             j = j - 0x20;
           }
         }
-        if (stop.find(i) != stop.end()) {
+        if (stop.find(i) == stop.end()) {
           auto t = iHash::Hash(i) % zone;
           true_words[t].push_back(i);
         }
@@ -71,7 +81,8 @@ class SplitToolCppJieba {
     return true_words;
   }
 
-  std::map<std::string, int> reduce(std::vector<std::string>& map_) {
+  static std::map<std::string, int> reduce(
+      std::vector<std::string>& map_) {
     std::map<std::string, int> count;
     for (std::string& i : map_) {
       count[i]++;
@@ -80,12 +91,27 @@ class SplitToolCppJieba {
   }
 };
 
+class IndexTool {
+ public:
+  static void map(std::string& word,
+                  int index,
+                  std::map<int, std::set<int>>& index_map) {
+    std::map<int, std::set<int>>& ret = index_map;
+    utf8::iterator<std::string::iterator> beg(
+        word.begin(), word.begin(), word.end());
+    utf8::iterator<std::string::iterator> end(
+        word.end(), word.begin(), word.end());
+    for (; beg != end; beg++) {
+      ret[*beg].insert(index);
+    }
+  }
+};
 class DictProducer {
  public:
   DictProducer(std::string file) {
-    std::string s(std::move(
-        ReadAll::read("/home/rings/searchEngine/data/files.json")));
-    nlohmann::json json(s);
+    std::string s(ReadAll::read(file));
+    nlohmann::json json = nlohmann::json::parse(s);
+
     files_.resize(json["text"].size());
     for (int i = 0; i < files_.size(); i++) {
       files_[i] = json["text"].at(i);
@@ -100,10 +126,12 @@ class DictProducer {
       }
     }
     zone_ = json["zone"];
+    dat_file_ = json["dat"];
+    // load();
   }
   void buildDict() {
     std::vector<std::future<std::vector<std::vector<std::string>>>>
-        map_worker(files_.size());
+        map_worker;
 
     for (auto& i : files_) {
       map_worker.emplace_back(std::async(std::launch::async,
@@ -125,21 +153,59 @@ class DictProducer {
         }
       }
     }
+
+    std::vector<std::future<std::map<std::string, int>>>
+        reduce_worker;
+
+    for (auto& i : true_words) {
+      std::sort(i.begin(), i.end());
+      reduce_worker.emplace_back(
+          std::async(std::launch::async,
+                     &SplitToolCppJieba::reduce,
+                     std::ref(i)));
+    }
+
+    std::map<std::string, int> true_map;
+    for (auto& i : reduce_worker) {
+      auto t = i.get();
+      true_map.insert(t.begin(), t.end());
+    }
+
+    for (auto it = true_map.begin(); it != true_map.end(); it++) {
+      dict_.push_back(*it);
+    }
+
+    fmt::print("fict_ is {}", dict_);
   }
 
   void creatIndex() {
+    for (int i = 0; i < dict_.size(); i++) {
+      IndexTool::map(dict_[i].first, i, index_);
+    }
   }
   void store() {
+    std::ofstream os(dat_file_, std::ios::binary);
+    cereal::JSONOutputArchive archive(os);
+    archive(dict_, index_);
+  }
+
+  static void load(std::string dat_file,
+                   std::vector<std::pair<std::string, int>>& dict,
+                   std::map<int, std::set<int>>& index) {
+    std::ifstream is(dat_file, std::ios::binary);
+    cereal::JSONInputArchive archive(is);
+    archive(dict, index);
   }
 
  private:
   std::vector<std::string> files_;
   std::set<std::string> stop_;
   std::vector<std::pair<std::string, int>> dict_;
-  std::map<std::string, std::set<int>> index_;
+  std::map<int, std::set<int>> index_;
   SplitTool* cuttor_;
   cppjieba::Jieba jieba_;
   int zone_;
+  std::string dat_file_;
 };
 
 }  // namespace dictionary

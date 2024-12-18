@@ -9,7 +9,8 @@ set(CMAKE_CXX_FLAGS -Wunused-variable)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${SearchEngine_SOURCE_DIR}/bin)
 
-# Add these lines to set up include directories
+
+
 include_directories(${SearchEngine_SOURCE_DIR}/include 
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/include
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/deps/limonp/include)
@@ -37,3 +38,9 @@ target_link_libraries(RedisCli ${WORKFLOW_LIB})
 ADD_EXECUTABLE(simhash src/simhash.cpp)
 
 add_executable(jieba src/jieba.cpp)
+
+add_executable(keyWord src/keyWord.cc)
+target_link_libraries(keyWord fmt )
+
+add_executable(keyServer src/KeyServer.cc)
+target_link_libraries(keyServer wfrest fmt)
