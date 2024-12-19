@@ -46,11 +46,48 @@ struct lrucache_t {
   lrucache_t(int max) : lrucache(max), max_size(max) {
   }
 };
+
 std::vector<lrucache_t> lrucache_vec;
+std::vector<lrucache_t> lrucache_vec_other;
+int pool_sel = 0;
+cache::lru_cache<std::string, std::string> temp_cache(3);
+
+void copy_pool() {
+  auto *ptr = &lrucache_vec;
+
+  if (pool_sel == 0) {
+    ptr = &lrucache_vec_other;
+    pool_sel = 1;
+  } else {
+    pool_sel = 0;
+  }
+
+  for (auto &i : (*ptr)) {
+    for (auto &j : i.log) {
+      temp_cache.put(j.first, j.second);
+    }
+  }
+
+  for (int i = 0; i < 20; ++i) {
+    fmt::print("在被覆盖之前 {} 旧的 cache size {}\n",
+               i,
+               (*ptr)[i].lrucache.size());
+    (*ptr)[i].lrucache = temp_cache;
+    (*ptr)[i].log.clear();
+  }
+
+  // for (int i = 0; i < 20; i++) {
+  //   lrucache_pool.post(&lrucache_vec[i]);
+  // }
+}
 
 void timer_callback(WFTimerTask *copytask) {
   next_time = next_time * 2;
   next_time = std::min(next_time, 5);
+
+  *(series_of(copytask)) << WFTaskFactory::create_go_task(
+      "truecopy", []() { copy_pool(); });
+
   for (int i = 0; i < 20; i++) {
     auto task = WFTaskFactory::create_go_task("falsecopy", []() {});
     *(series_of(copytask)) << lrucache_pool.get(task);
@@ -58,24 +95,13 @@ void timer_callback(WFTimerTask *copytask) {
 
   *(series_of(copytask))
       << WFTaskFactory::create_go_task("truecopy", []() {
-           cache::lru_cache<std::string, std::string> temp_cache(3);
-           temp_cache = lrucache_vec[0].lrucache;
-           for (auto &i : lrucache_vec) {
-             for (auto &j : i.log) {
-               temp_cache.put(j.first, j.second);
-             }
-           }
-
-           for (int i = 0; i < 20; ++i) {
-             fmt::print("在被覆盖之前 {} 旧的 cache size {}\n",
-                        i,
-                        lrucache_vec[i].lrucache.size());
-             lrucache_vec[i].lrucache = temp_cache;
-             lrucache_vec[i].log.clear();
+           auto *ptr = &lrucache_vec_other;
+           if (pool_sel == 0) {
+             ptr = &lrucache_vec;
            }
 
            for (int i = 0; i < 20; i++) {
-             lrucache_pool.post(&lrucache_vec[i]);
+             lrucache_pool.post(&(*ptr)[i]);
            }
          });
 
@@ -90,6 +116,10 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < 20; ++i) {
     lrucache_vec.emplace_back(3);
+  }
+
+  for (int i = 0; i < 20; ++i) {
+    lrucache_vec_other.emplace_back(3);
   }
 
   for (int i = 0; i < 20; i++) {
