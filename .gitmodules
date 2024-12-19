@@ -4,3 +4,6 @@
 [submodule "submodules/tinyxml2"]
 	path = submodules/tinyxml2
 	url = https://github.com/leethomason/tinyxml2
+[submodule "submodules/lru"]
+	path = submodules/lru
+	url = https://github.com/lamerman/cpp-lru-cache
