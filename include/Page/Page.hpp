@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "Page/WebPage.hpp"
-#include "cereal/archives/json.hpp"
+#include "cereal/archives/binary.hpp"
 #include "cereal/types/map.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/vector.hpp"
@@ -376,7 +376,7 @@ class PageLibPreprocessor {
   void storeOnDisk() {
     std::ofstream os("/home/rings/searchEngine/data/newoffset.dat",
                      std::ios::binary);
-    cereal::JSONOutputArchive archive(os);
+    cereal::BinaryOutputArchive archive(os);
     archive(page_list_, true_map_, invert_index_lib_, page_index_);
   }
 
@@ -389,7 +389,7 @@ class PageLibPreprocessor {
     }
 
     std::string s(
-        ReadAll::read("/home/rings/searchEngine/data/files.json"));
+        ReadAll::read("/home/rings/searchEngine/conf/files.json"));
     nlohmann::json json = nlohmann::json::parse(s);
 
     for (int i = 0; i < json["stop"].size(); i++) {

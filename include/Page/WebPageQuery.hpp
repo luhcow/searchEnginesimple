@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "Page/WebPage.hpp"
-#include "cereal/archives/json.hpp"
+#include "cereal/archives/binary.hpp"
 #include "cereal/types/map.hpp"
 #include "cereal/types/set.hpp"
 #include "cereal/types/string.hpp"
@@ -27,7 +27,7 @@ class WebPageQuery {
  public:
   WebPageQuery(std::string bina) {
     std::ifstream is(bina, std::ios::binary);
-    cereal::JSONInputArchive archive(is);
+    cereal::BinaryInputArchive archive(is);
 
     archive(page_list_, true_map_, invert_index_lib_, page_index_);
     // fmt::print("page-list is {}", page_list_);

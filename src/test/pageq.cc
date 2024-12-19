@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "WebPageQuery.hpp"
+#include "Page/WebPageQuery.hpp"
 
 int main() {
   WebPageQuery wpq("/home/rings/searchEngine/data/newoffset.dat");

@@ -11,7 +11,7 @@
 #include <iostream>
 #include <string>
 
-#include "WebPageQuery.hpp"
+#include "Page/WebPageQuery.hpp"
 #include "cppcodec/base64_url.hpp"
 #include "json.hpp"
 #include "urlcode.hpp"

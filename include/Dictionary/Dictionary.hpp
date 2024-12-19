@@ -1,6 +1,7 @@
 #ifndef SG_DICTPRODUCER_H__
 #define SG_DICTPRODUCER_H__
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -34,6 +35,43 @@
 #include "utf8/cpp11.h"
 
 namespace dictionary {
+
+class DirScanner {
+ public:
+  std::vector<std::string> operator()(std::string dir) {
+    traverse(dir);
+    return files_;
+  }
+  void traverse(std::string path) {
+    // 打开目录
+    DIR* path_dir = opendir(path.c_str());
+    struct dirent* entry;
+    // 遍历目录流，依次删除每一个目录项
+    while ((entry = readdir(path_dir)) != NULL) {
+      if (entry->d_name[0] == '.') {
+        continue;
+      }
+      if (entry->d_type == DT_DIR) {
+        char new_src[255];
+        sprintf(new_src, "%s/%s", path.c_str(), entry->d_name);
+        traverse(new_src);
+      }
+      if (entry->d_type != DT_DIR) {
+        char new_src[255];
+        sprintf(new_src, "%s/%s", path.c_str(), entry->d_name);
+        files_.push_back(new_src);
+      }
+    }
+
+    // 关闭目录流
+    closedir(path_dir);
+    // 目录为空了，可以删除该目录了
+    // 目录为空了，可以删除该目录了
+  }
+
+ private:
+  std::vector<std::string> files_;
+};
 
 class SplitToolCppJieba {
  public:
@@ -113,7 +151,10 @@ class DictProducer {
 
     files_.resize(json["text"].size());
     for (int i = 0; i < files_.size(); i++) {
-      files_[i] = json["text"].at(i);
+      auto j = DirScanner()(json["text"].at(i));
+      for (auto& k : j) {
+        files_.push_back(k);
+      }
     }
 
     for (int i = 0; i < json["stop"].size(); i++) {

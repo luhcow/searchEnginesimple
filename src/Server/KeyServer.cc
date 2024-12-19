@@ -12,7 +12,7 @@
 #include <string>
 
 #include "Dictionary/Dictionary.hpp"
-#include "KeyRecommander.hpp"
+#include "Dictionary/KeyRecommander.hpp"
 #include "cppcodec/base64_url.hpp"
 #include "urlcode.hpp"
 
