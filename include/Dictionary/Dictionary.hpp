@@ -9,7 +9,7 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cereal/archives/json.hpp>
+#include <cereal/archives/binary.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/set.hpp>
 #include <cereal/types/string.hpp>
@@ -149,8 +149,7 @@ class DictProducer {
     std::string s(ReadAll::read(file));
     nlohmann::json json = nlohmann::json::parse(s);
 
-    files_.resize(json["text"].size());
-    for (int i = 0; i < files_.size(); i++) {
+    for (int i = 0; i < json["text"].size(); i++) {
       auto j = DirScanner()(json["text"].at(i));
       for (auto& k : j) {
         files_.push_back(k);
@@ -158,7 +157,7 @@ class DictProducer {
     }
 
     for (int i = 0; i < json["stop"].size(); i++) {
-      std::string t(std::move(ReadAll::read(json["stop"].at(i))));
+      std::string t(ReadAll::read(json["stop"].at(i)));
       std::string tw;
       std::istringstream split_flow(t);
       while (split_flow >> tw) {
@@ -166,7 +165,7 @@ class DictProducer {
       }
     }
     zone_ = json["zone"];
-    dat_file_ = json["dat"];
+    dat_file_ = json["data"];
     // load();
   }
   void buildDict() {
@@ -225,7 +224,7 @@ class DictProducer {
   }
   void store() {
     std::ofstream os(dat_file_, std::ios::binary);
-    cereal::JSONOutputArchive archive(os);
+    cereal::BinaryOutputArchive archive(os);
     archive(dict_, index_);
   }
 
@@ -233,7 +232,7 @@ class DictProducer {
                    std::vector<std::pair<std::string, int>>& dict,
                    std::map<int, std::set<int>>& index) {
     std::ifstream is(dat_file, std::ios::binary);
-    cereal::JSONInputArchive archive(is);
+    cereal::BinaryInputArchive archive(is);
     archive(dict, index);
   }
 

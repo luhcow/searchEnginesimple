@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
     svr.list_routes();
     wait_group.wait();
     svr.stop();
+    webpagequery.close_fd();
   } else {
     fprintf(stderr, "Cannot start server");
     exit(1);
