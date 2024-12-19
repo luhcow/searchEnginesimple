@@ -7,6 +7,8 @@
 #include <fmt/ranges.h>
 #include <unistd.h>
 
+#include <cmath>
+#include <cstdint>
 #include <functional>
 #include <future>
 #include <iostream>
@@ -271,12 +273,11 @@ class PageLibPreprocessor {
   }
 
   void buildDict() {
-    std::vector<std::string> true_words;
-    for (int i = 0; i < page_list_.size(); i++) {
+    for (int t = 0; t < page_list_.size(); t++) {
       std::vector<std::string> words;
 
-      fmt::print("\nmaybe rad something {}\n", page_list_[i](fd_));
-      std::string s(page_list_[i](fd_));
+      fmt::print("\nmaybe rad something {}\n", page_list_[t](fd_));
+      std::string s(page_list_[t](fd_));
       fmt::print("\nmaybe s {}\n", s);
       // 定义正则表达式：匹配中文字符之间的换行符
       std::regex pattern("([\u4e00-\u9fa5])\n+([\u4e00-\u9fa5])");
@@ -291,7 +292,8 @@ class PageLibPreprocessor {
         int cp = utf8::next(it, i.end());
         if (cp <= 0x9fa5 && cp >= 0x4e00) {
           if (stop_.find(i) == stop_.end()) {
-            true_words.push_back(i);
+            page_index_[t][i]++;
+            invert_index_lib_[i][t] = 0.0;
           }
         } else if ((cp >= 0x0041 && cp <= 0x005a) ||
                    (cp >= 0x0061 && cp <= 0x007a)) {
@@ -301,17 +303,34 @@ class PageLibPreprocessor {
             }
           }
           if (stop_.find(i) == stop_.end()) {
-            true_words.push_back(i);
+            page_index_[t][i]++;
+            invert_index_lib_[i][t] = 0.0;
           }
         }
       }
     }
-    fmt::print("\nmap is done {}\n", true_words);
 
-    for (std::string& i : true_words) {
-      true_map_[i]++;
+    // 权重
+    for (auto& key : invert_index_lib_) {
+      for (auto& pag : key.second) {
+        auto TF = page_index_[pag.first][key.first];
+        auto DF = invert_index_lib_[key.first].size();
+        double IDF = log2(double(page_list_.size()) / (DF + 1));
+        pag.second = IDF * TF;
+      }
     }
 
+    // 归一化
+    for (auto& pag : page_index_) {
+      double sqr = 0.0;
+      for (auto& wd : pag.second) {
+        sqr += pow(invert_index_lib_[wd.first][pag.first], 2);
+        sqr = sqrt(sqr);
+      }
+      for (auto& wd : pag.second) {
+        invert_index_lib_[wd.first][pag.first] /= sqr;
+      }
+    }
     fmt::print("\nreduce is done {}\n", true_map_);
   }
 
@@ -357,7 +376,7 @@ class PageLibPreprocessor {
     std::ofstream os("/home/rings/searchEngine/data/newoffset.dat",
                      std::ios::binary);
     cereal::JSONOutputArchive archive(os);
-    archive(page_list_, true_map_);
+    archive(page_list_, true_map_, invert_index_lib_, page_index_);
   }
   PageLibPreprocessor(std::vector<std::string> path) {
     for (auto& i : path) {
@@ -390,8 +409,8 @@ class PageLibPreprocessor {
   std::vector<std::string> files_;
   std::vector<WebPage> page_list_;
   std::unordered_map<int, std::pair<int, int>> offset_lib_;
-  std::unordered_map<std::string, std::set<std::pair<int, double>>>
-      invert_index_lib_;
+  std::map<std::string, std::map<int, double>> invert_index_lib_;
+  std::map<int, std::map<std::string, int>> page_index_;
   std::set<std::string> stop_;
   cppjieba::Jieba jieba_;
   int zone_;

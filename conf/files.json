@@ -1,0 +1,12 @@
+{
+    "text": [
+        "/home/rings/searchEngine/data/The_Holy_Bible.txt",
+        "/home/rings/searchEngine/data/C3-Art0019.txt"
+    ],
+    "stop": [
+        "/home/rings/searchEngine/data/stop_words_eng.txt",
+        "/home/rings/searchEngine/data/stop_words_zh.txt"
+    ],
+    "zone": 10,
+    "data": "/home/rings/searchEngine/data/dictIndex.dat"
+}

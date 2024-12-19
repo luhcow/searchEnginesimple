@@ -29,6 +29,10 @@ class WebPage {
     return ret;
   }
 
+  int get_id() {
+    return id_;
+  }
+
  private:
   int id_;
   long begin_;
