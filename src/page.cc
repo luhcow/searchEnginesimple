@@ -7,4 +7,5 @@ int main() {
 
   p.buildDict();
   p.storeOnDisk();
+  p.close_fd();
 }

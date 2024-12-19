@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
                             wfrest::HttpResp *resp,
                             SeriesWork *series) {
             std::string key(req->param("key"));
-
+            fmt::print("{}\n", key);
             UrlCoder::decode(key);
             UrlCoder::decode(key);
 

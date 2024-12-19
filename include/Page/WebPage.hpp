@@ -11,7 +11,7 @@ class WebPage {
   WebPage(int id, long begin, long end)
       : id_(id), begin_(begin), end_(end) {
   }
-
+  WebPage() = default;
   // This method lets cereal know which data members to serialize
   template <class Archive>
   void serialize(Archive& archive) {

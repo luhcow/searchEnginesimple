@@ -1,3 +1,6 @@
+#ifndef SG_IHASH_H__
+#define SG_IHASH_H__
+
 #include <cstdint>
 #include <string>
 
@@ -22,3 +25,5 @@ class iHash {
     return static_cast<int>(hash & 0x7fffffff);  // 保证结果非负
   }
 };
+
+#endif

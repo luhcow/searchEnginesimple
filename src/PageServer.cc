@@ -11,8 +11,7 @@
 #include <iostream>
 #include <string>
 
-#include "Dictionary/Dictionary.hpp"
-#include "KeyRecommander.hpp"
+#include "WebPageQuery.hpp"
 #include "cppcodec/base64_url.hpp"
 #include "urlcode.hpp"
 
@@ -25,27 +24,24 @@ void sig_handler(int signo) {
 int main(int argc, char *argv[]) {
   signal(SIGINT, sig_handler);
 
-  KeyRecommander keyrecommander(
-      std::bind(&dictionary::DictProducer::load,
-                "/home/rings/searchEngine/data/dictIndex.dat",
-                std::placeholders::_1,
-                std::placeholders::_2));
+  WebPageQuery webpagequery(
+      "/home/rings/searchEngine/data/newoffset.dat");
 
   wfrest::HttpServer svr;
 
   // 搜索词推荐
-  svr.GET("/{key}",
-          [&keyrecommander](const wfrest::HttpReq *req,
-                            wfrest::HttpResp *resp,
-                            SeriesWork *series) {
-            std::string key(req->param("key"));
+  svr.GET("/{sentence}",
+          [&webpagequery](const wfrest::HttpReq *req,
+                          wfrest::HttpResp *resp,
+                          SeriesWork *series) {
+            std::string sentence(req->param("sentence"));
 
-            UrlCoder::decode(key);
-            UrlCoder::decode(key);
+            UrlCoder::decode(sentence);
+            UrlCoder::decode(sentence);
 
             *series << WFTaskFactory::create_go_task(
-                key, [&keyrecommander, key, resp]() {
-                  auto json = keyrecommander.execute(key);
+                sentence, [&webpagequery, sentence, resp]() {
+                  auto json = webpagequery.executeQuery(sentence);
                   resp->Json(json.dump());
                 });
           });

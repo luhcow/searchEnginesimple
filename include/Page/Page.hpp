@@ -325,8 +325,8 @@ class PageLibPreprocessor {
       double sqr = 0.0;
       for (auto& wd : pag.second) {
         sqr += pow(invert_index_lib_[wd.first][pag.first], 2);
-        sqr = sqrt(sqr);
       }
+      sqr = sqrt(sqr);
       for (auto& wd : pag.second) {
         invert_index_lib_[wd.first][pag.first] /= sqr;
       }
@@ -372,12 +372,14 @@ class PageLibPreprocessor {
     }
     fmt::print("\nmap is done {}\n", true_words);
   }
+
   void storeOnDisk() {
     std::ofstream os("/home/rings/searchEngine/data/newoffset.dat",
                      std::ios::binary);
     cereal::JSONOutputArchive archive(os);
     archive(page_list_, true_map_, invert_index_lib_, page_index_);
   }
+
   PageLibPreprocessor(std::vector<std::string> path) {
     for (auto& i : path) {
       auto j = DirScanner()(i);
@@ -403,6 +405,10 @@ class PageLibPreprocessor {
     fd_ = open("/home/rings/searchEngine/data/newripepage.dat",
                O_RDWR | O_CREAT | O_TRUNC,
                0666);
+  }
+
+  void close_fd() {
+    close(fd_);
   }
 
  private:

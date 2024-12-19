@@ -50,3 +50,9 @@ add_executable(xml src/xmlParseForRSS.cc submodules/tinyxml2/tinyxml2.cpp)
 
 add_executable(page src/page.cc submodules/tinyxml2/tinyxml2.cpp)
 target_link_libraries(page fmt)
+
+add_executable(pageq src/pageq.cc)
+target_link_libraries(pageq fmt)
+
+add_executable(PageServer src/PageServer.cc)
+target_link_libraries(PageServer wfrest fmt)
