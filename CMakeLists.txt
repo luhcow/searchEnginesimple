@@ -15,7 +15,8 @@ include_directories(${SearchEngine_SOURCE_DIR}/include
 	${SearchEngine_SOURCE_DIR}/include/helper 
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/include
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/deps/limonp/include
-	${SearchEngine_SOURCE_DIR}/submodules/tinyxml2)
+	${SearchEngine_SOURCE_DIR}/submodules/tinyxml2
+	${SearchEngine_SOURCE_DIR}/submodules/lru/include)
 
 find_library(LIBRT rt)
 find_package(OpenSSL REQUIRED)
@@ -43,7 +44,7 @@ add_executable(keyWord src/keyWord.cc)
 target_link_libraries(keyWord fmt )
 
 add_executable(keyServer src/Server/KeyServer.cc)
-target_link_libraries(keyServer wfrest fmt)
+target_link_libraries(keyServer wfrest fmt ${WORKFLOW_LIB})
 
 add_executable(xml src/test/xmlParseForRSS.cc submodules/tinyxml2/tinyxml2.cpp)
 
