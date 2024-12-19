@@ -2,12 +2,12 @@
 #include <string>
 
 #include "cppcodec/base64_url.hpp"
+#include "urlcode.hpp"
 #include "wfrest/HttpServer.h"
 #include "workflow/KafkaDataTypes.h"
 #include "workflow/KafkaResult.h"
 #include "workflow/WFFacilities.h"
 #include "workflow/WFKafkaClient.h"
-
 using namespace wfrest;
 
 static WFFacilities::WaitGroup wait_group(1);
@@ -168,9 +168,11 @@ int main(int argc, char *argv[]) {
 
   // example:
   // kafka://10.160.23.23:9000,10.123.23.23,kafka://kafka.sogou
-  std::string url = "kafka://localhost:9092";
+  std::string kafkaurl = "kafka://localhost:9092";
+  std::string sugesturl = "http://localhost:9882/";
+  std::string weburl = "http://localhost:9883/";
 
-  if (client.init(url) < 0) {
+  if (client.init(kafkaurl) < 0) {
     perror("client.init");
     exit(1);
   }
@@ -178,14 +180,26 @@ int main(int argc, char *argv[]) {
   HttpServer svr;
 
   // 搜索词推荐
-  svr.GET(
-      "/sug/{key}",
-      [](const HttpReq *req, HttpResp *resp, SeriesWork *series) {});
+  svr.GET("/sug/{key}",
+          [&sugesturl](const HttpReq *req, HttpResp *resp) {
+            std::string key(req->param("key"));
+
+            UrlCoder::decode(key);
+            UrlCoder::decode(key);
+            resp->Http(sugesturl + key);
+          });
 
   // 网页搜索
   svr.GET(
       "/s/{key}",
-      [](const HttpReq *req, HttpResp *resp, SeriesWork *series) {});
+      [&weburl](
+          const HttpReq *req, HttpResp *resp, SeriesWork *series) {
+        std::string key(req->param("key"));
+
+        UrlCoder::decode(key);
+        UrlCoder::decode(key);
+        resp->Http(weburl + key);
+      });
 
   // 把跳转的信息送给 kafka
   svr.GET(
@@ -222,7 +236,7 @@ int main(int argc, char *argv[]) {
                          jump_info["url"].get<std::string>());
       });
 
-  if (svr.start(8888) == 0) {
+  if (svr.track().start(8888) == 0) {
     wait_group.wait();
     svr.stop();
   } else {

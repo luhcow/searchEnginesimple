@@ -61,7 +61,11 @@ class WebPageQuery {
     // 获取网页交集
     std::set<int> get_page;
     auto fir = query.begin();
-
+    if (fir == query.end()) {
+      nlohmann::json json;
+      json = nullptr;
+      return json;
+    }
     for (auto& j : (*(fir)).second) {
       get_page.insert(j.first);
     }
