@@ -4,6 +4,7 @@
 #include <workflow/KafkaResult.h>
 #include <workflow/WFFacilities.h>
 #include <workflow/WFKafkaClient.h>
+#include <workflow/WFMessageQueue.h>
 #include <workflow/WFResourcePool.h>
 #include <workflow/WFTaskFactory.h>
 
@@ -48,34 +49,25 @@ struct lrucache_t {
 };
 
 std::vector<lrucache_t> lrucache_vec;
-std::vector<lrucache_t> lrucache_vec_other;
-int pool_sel = 0;
-cache::lru_cache<std::string, std::string> temp_cache(3);
 
-void copy_pool() {
-  auto *ptr = &lrucache_vec;
+cache::lru_cache<std::string, std::string> temp_cache(30);
 
-  if (pool_sel == 0) {
-    ptr = &lrucache_vec_other;
-    pool_sel = 1;
-  } else {
-    pool_sel = 0;
+void copy_pool(WFGoTask *task) {
+  auto *series = series_of(task);
+  lrucache_t **lrucacheptr = (lrucache_t **)series->get_context();
+  auto ptr = *lrucacheptr;
+
+  for (auto &j : (*ptr).log) {
+    temp_cache.put(j.first, j.second);
   }
 
-  for (auto &i : (*ptr)) {
-    for (auto &j : i.log) {
-      temp_cache.put(j.first, j.second);
-    }
-  }
+  fmt::print("在被覆盖之前 {} 旧的 cache size {}\n",
+             (*ptr).lrucache.size());
 
-  for (int i = 0; i < 20; ++i) {
-    fmt::print("在被覆盖之前 {} 旧的 cache size {}\n",
-               i,
-               (*ptr)[i].lrucache.size());
-    (*ptr)[i].lrucache = temp_cache;
-    (*ptr)[i].log.clear();
-  }
+  (*ptr).lrucache = temp_cache;
+  (*ptr).log.clear();
 
+  lrucache_pool.post(ptr);
   // for (int i = 0; i < 20; i++) {
   //   lrucache_pool.post(&lrucache_vec[i]);
   // }
@@ -85,26 +77,35 @@ void timer_callback(WFTimerTask *copytask) {
   next_time = next_time * 2;
   next_time = std::min(next_time, 5);
 
-  *(series_of(copytask)) << WFTaskFactory::create_go_task(
-      "truecopy", []() { copy_pool(); });
+  auto series = series_of(copytask);
 
   for (int i = 0; i < 20; i++) {
-    auto task = WFTaskFactory::create_go_task("falsecopy", []() {});
-    *(series_of(copytask)) << lrucache_pool.get(task);
-  }
+    auto task =
+        WFTaskFactory::create_go_task("falsecopy", [copytask]() {
+          auto series = series_of(copytask);
+          lrucache_t **lrucacheptr =
+              (lrucache_t **)series->get_context();
+          auto lrucache = *lrucacheptr;
 
-  *(series_of(copytask))
-      << WFTaskFactory::create_go_task("swap", []() {
-           if (pool_sel == 0) {
-             for (int i = 0; i < 20; i++) {
-               lrucache_pool.post(&lrucache_vec[i]);
-             }
-           } else {
-             for (int i = 0; i < 20; i++) {
-               lrucache_pool.post(&lrucache_vec_other[i]);
-             }
-           }
-         });
+          for (auto &j : lrucache->log) {
+            temp_cache.put(j.first, j.second);
+          }
+
+          for (auto &i : temp_cache) {
+            lrucache->lrucache.put(i.first, i.second);
+          }
+
+          lrucache->log.clear();
+
+          lrucache_pool.post(lrucache);
+        });
+
+    void **lrucacheptrptr = (void **)series->get_context();
+    WFConditional *cond =
+        lrucache_pool.get(task, (void **)lrucacheptrptr);
+
+    *series << cond;
+  }
 
   *(series_of(copytask)) << WFTaskFactory::create_timer_task(
       next_time, 0, timer_callback);
@@ -116,11 +117,7 @@ int main(int argc, char *argv[]) {
   wfrest::HttpServer svr;
 
   for (int i = 0; i < 20; ++i) {
-    lrucache_vec.emplace_back(3);
-  }
-
-  for (int i = 0; i < 20; ++i) {
-    lrucache_vec_other.emplace_back(3);
+    lrucache_vec.emplace_back(30);
   }
 
   for (int i = 0; i < 20; i++) {
@@ -144,13 +141,15 @@ int main(int argc, char *argv[]) {
                   (lrucache_t **)series->get_context();
               auto lrucache = *lrucacheptr;
               try {
-                fmt::print("\n");
+                if (lrucache == nullptr) {
+                  fmt::print("smoe thing err\n");
+                  return;
+                }
                 const std::string &from_cache =
                     lrucache->lrucache.get(key);
-                fmt::print("cache 命中\n");
+
                 resp->Json(from_cache);
               } catch (...) {
-                fmt::print("cache 未命中\n");
                 auto readfunc = [=]() {
                   *series << WFTaskFactory::create_go_task(
                       key, [=]() {
@@ -160,7 +159,7 @@ int main(int argc, char *argv[]) {
                         lrucache->log.push_front({key, json.dump()});
                         if (lrucache->log.size() >
                             lrucache->max_size) {
-                          lrucache->log.pop_front();
+                          lrucache->log.pop_back();
                         }
 
                         resp->Redis(
@@ -207,11 +206,11 @@ int main(int argc, char *argv[]) {
                                       {key, val.string_value()});
                                   if (lrucache->log.size() >
                                       lrucache->max_size) {
-                                    lrucache->log.pop_front();
+                                    lrucache->log.pop_back();
                                   }
 
                                   resp->Json(val.string_value());
-                                  fmt::print("redis 命中\n");
+
                                 } else {
                                   readfunc();
                                   return;
@@ -241,9 +240,17 @@ int main(int argc, char *argv[]) {
   WFTimerTask *timer;
   timer =
       WFTaskFactory::create_timer_task(next_time, 0, timer_callback);
-  // timer->start();
 
-  if (svr.track().start(9882) == 0) {
+  SeriesWork *work =
+      Workflow::create_series_work(timer, [](const SeriesWork *) {});
+
+  cache::lru_cache<std::string, std::string> **lrucacheptrptr =
+      new cache::lru_cache<std::string, std::string> *();
+  work->set_context(lrucacheptrptr);
+
+  work->start();
+
+  if (svr.start(9883) == 0) {
     svr.list_routes();
     wait_group.wait();
     svr.stop();
