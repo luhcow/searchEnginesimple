@@ -94,14 +94,15 @@ void timer_callback(WFTimerTask *copytask) {
   }
 
   *(series_of(copytask))
-      << WFTaskFactory::create_go_task("truecopy", []() {
-           auto *ptr = &lrucache_vec_other;
+      << WFTaskFactory::create_go_task("swap", []() {
            if (pool_sel == 0) {
-             ptr = &lrucache_vec;
-           }
-
-           for (int i = 0; i < 20; i++) {
-             lrucache_pool.post(&(*ptr)[i]);
+             for (int i = 0; i < 20; i++) {
+               lrucache_pool.post(&lrucache_vec[i]);
+             }
+           } else {
+             for (int i = 0; i < 20; i++) {
+               lrucache_pool.post(&lrucache_vec_other[i]);
+             }
            }
          });
 
@@ -143,6 +144,7 @@ int main(int argc, char *argv[]) {
                   (lrucache_t **)series->get_context();
               auto lrucache = *lrucacheptr;
               try {
+                fmt::print("\n");
                 const std::string &from_cache =
                     lrucache->lrucache.get(key);
                 fmt::print("cache 命中\n");
@@ -229,6 +231,9 @@ int main(int argc, char *argv[]) {
             lrucache_pool.get(task, (void **)lrucacheptrptr);
 
         *series << cond;
+        series->set_callback([lrucacheptrptr](const SeriesWork *) {
+          delete lrucacheptrptr;
+        });
       });
 
   // 聚合任务
@@ -236,7 +241,7 @@ int main(int argc, char *argv[]) {
   WFTimerTask *timer;
   timer =
       WFTaskFactory::create_timer_task(next_time, 0, timer_callback);
-  timer->start();
+  // timer->start();
 
   if (svr.track().start(9882) == 0) {
     svr.list_routes();
