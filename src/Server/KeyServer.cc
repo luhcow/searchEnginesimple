@@ -35,66 +35,12 @@ KeyRecommander keyrecommander(
 
 std::string redis_url = "redis://127.0.0.1:16379";
 
-WFResourcePool lrucache_pool(20);
-
 int next_time = 1;
-
-struct lrucache_t {
-  cache::lru_cache<std::string, std::string> lrucache;
-  std::list<std::pair<std::string, std::string>> log;
-  int max_size;
-  lrucache_t(int max) : lrucache(max), max_size(max) {
-  }
-};
-std::vector<lrucache_t> lrucache_vec;
-
-void timer_callback(WFTimerTask *copytask) {
-  next_time = next_time * 2;
-  next_time = std::min(next_time, 5);
-  for (int i = 0; i < 20; i++) {
-    auto task = WFTaskFactory::create_go_task("falsecopy", []() {});
-    *(series_of(copytask)) << lrucache_pool.get(task);
-  }
-
-  *(series_of(copytask))
-      << WFTaskFactory::create_go_task("truecopy", []() {
-           cache::lru_cache<std::string, std::string> temp_cache(3);
-           temp_cache = lrucache_vec[0].lrucache;
-           for (auto &i : lrucache_vec) {
-             for (auto &j : i.log) {
-               temp_cache.put(j.first, j.second);
-             }
-           }
-
-           for (int i = 0; i < 20; ++i) {
-             fmt::print("在被覆盖之前 {} 旧的 cache size {}\n",
-                        i,
-                        lrucache_vec[i].lrucache.size());
-             lrucache_vec[i].lrucache = temp_cache;
-             lrucache_vec[i].log.clear();
-           }
-
-           for (int i = 0; i < 20; i++) {
-             lrucache_pool.post(&lrucache_vec[i]);
-           }
-         });
-
-  *(series_of(copytask)) << WFTaskFactory::create_timer_task(
-      next_time, 0, timer_callback);
-}
 
 int main(int argc, char *argv[]) {
   signal(SIGINT, sig_handler);
 
   wfrest::HttpServer svr;
-
-  for (int i = 0; i < 20; ++i) {
-    lrucache_vec.emplace_back(3);
-  }
-
-  for (int i = 0; i < 20; i++) {
-    lrucache_pool.post(&lrucache_vec[i]);
-  }
 
   // 搜索词推荐
   svr.GET(
@@ -107,108 +53,51 @@ int main(int argc, char *argv[]) {
         UrlCoder::decode(key);
         UrlCoder::decode(key);
 
-        auto task =
-            WFTaskFactory::create_go_task(key, [resp, series, key]() {
-              lrucache_t **lrucacheptr =
-                  (lrucache_t **)series->get_context();
-              auto lrucache = *lrucacheptr;
-              try {
-                const std::string &from_cache =
-                    lrucache->lrucache.get(key);
-                fmt::print("cache 命中\n");
-                resp->Json(from_cache);
-              } catch (...) {
-                fmt::print("cache 未命中\n");
-                auto readfunc = [=]() {
-                  *series << WFTaskFactory::create_go_task(
-                      key, [=]() {
-                        auto json = keyrecommander.execute(key);
+        auto readfunc = [=]() {
+          *series << WFTaskFactory::create_go_task(key, [=]() {
+            auto json = keyrecommander.execute(key);
 
-                        lrucache->lrucache.put(key, json.dump());
-                        lrucache->log.push_front({key, json.dump()});
-                        if (lrucache->log.size() >
-                            lrucache->max_size) {
-                          lrucache->log.pop_front();
-                        }
+            resp->Redis(redis_url, "SET", {key, json.dump()});
+            resp->Json(json.dump());
+          });
+        };
 
-                        resp->Redis(
-                            redis_url, "SET", {key, json.dump()});
-                        resp->Json(json.dump());
-                      });
-                };
+        resp->Redis(
+            redis_url, "GET", {key}, [=](WFRedisTask *redis_task) {
+              protocol::RedisRequest *redis_req =
+                  redis_task->get_req();
+              protocol::RedisResponse *redis_resp =
+                  redis_task->get_resp();
+              int state = redis_task->get_state();
 
-                resp->Redis(redis_url,
-                            "GET",
-                            {key},
-                            [=](WFRedisTask *redis_task) {
-                              protocol::RedisRequest *redis_req =
-                                  redis_task->get_req();
-                              protocol::RedisResponse *redis_resp =
-                                  redis_task->get_resp();
-                              int state = redis_task->get_state();
+              protocol::RedisValue val;
 
-                              protocol::RedisValue val;
-
-                              switch (state) {
-                                case WFT_STATE_SUCCESS:
-                                  redis_resp->get_result(val);
-                                  if (val.is_error()) {
-                                    readfunc();
-                                    return;
-                                  }
-                                  break;
-                                default:
-
-                                  readfunc();
-                                  return;
-                              }
-                              std::string cmd;
-                              std::vector<std::string> params;
-                              redis_req->get_command(cmd);
-                              redis_req->get_params(params);
-                              if (state == WFT_STATE_SUCCESS &&
-                                  cmd == "GET") {
-                                if (val.is_string()) {
-                                  lrucache->lrucache.put(
-                                      key, val.string_value());
-                                  lrucache->log.push_front(
-                                      {key, val.string_value()});
-                                  if (lrucache->log.size() >
-                                      lrucache->max_size) {
-                                    lrucache->log.pop_front();
-                                  }
-
-                                  resp->Json(val.string_value());
-                                  fmt::print("redis 命中\n");
-                                } else {
-                                  readfunc();
-                                  return;
-                                }
-                              }
-                            });
+              switch (state) {
+                case WFT_STATE_SUCCESS:
+                  redis_resp->get_result(val);
+                  if (val.is_error()) {
+                    readfunc();
+                    return;
+                  }
+                  break;
+                default:
+                  readfunc();
+                  return;
               }
-
-              lrucache_pool.post(lrucache);
+              std::string cmd;
+              std::vector<std::string> params;
+              redis_req->get_command(cmd);
+              redis_req->get_params(params);
+              if (state == WFT_STATE_SUCCESS && cmd == "GET") {
+                resp->Json(val.string_value());
+              } else {
+                readfunc();
+                return;
+              }
             });
-
-        cache::lru_cache<std::string, std::string> **lrucacheptrptr =
-            new cache::lru_cache<std::string, std::string> *();
-        series->set_context(lrucacheptrptr);
-
-        WFConditional *cond =
-            lrucache_pool.get(task, (void **)lrucacheptrptr);
-
-        *series << cond;
       });
 
-  // 聚合任务
-
-  WFTimerTask *timer;
-  timer =
-      WFTaskFactory::create_timer_task(next_time, 0, timer_callback);
-  timer->start();
-
-  if (svr.track().start(9882) == 0) {
+  if (svr.start(9882) == 0) {
     svr.list_routes();
     wait_group.wait();
     svr.stop();
