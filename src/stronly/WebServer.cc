@@ -1,7 +1,12 @@
+#include <stdio.h>
+
 #include <csignal>
 #include <string>
 
+#include "/home/rings/searchEngine/src/stronly/config/config.h"
+#include "/home/rings/searchEngine/src/stronly/stronly.srpc.h"
 #include "cppcodec/base64_url.hpp"
+#include "srpc/rpc_types.h"
 #include "urlcode.hpp"
 #include "wfrest/HttpServer.h"
 #include "workflow/KafkaDataTypes.h"
@@ -14,7 +19,10 @@ static WFFacilities::WaitGroup wait_group(1);
 
 bool no_cgroup = false;
 
-WFKafkaClient client;
+WFKafkaClient client_kafka;
+
+static srpc::RPCConfig config_key;
+static srpc::RPCConfig config_page;
 
 void kafka_callback(WFKafkaTask *task) {
   std::cerr << "callback in\n";
@@ -26,7 +34,7 @@ void kafka_callback(WFKafkaTask *task) {
             "error msg: %s\n",
             WFGlobal::get_error_string(state, error));
     fprintf(stderr, "Failed. Press Ctrl-C to exit.\n");
-    client.deinit();
+    client_kafka.deinit();
     wait_group.done();
     return;
   }
@@ -68,7 +76,7 @@ void kafka_callback(WFKafkaTask *task) {
       if (!records.empty()) {
         std::cerr << "no empty\n";
         if (!no_cgroup)
-          next_task = client.create_kafka_task(
+          next_task = client_kafka.create_kafka_task(
               "api=commit", 3, kafka_callback);
 
         std::string out;
@@ -139,7 +147,8 @@ void kafka_callback(WFKafkaTask *task) {
         }
       }
 
-      next_task = client.create_leavegroup_task(3, kafka_callback);
+      next_task =
+          client_kafka.create_leavegroup_task(3, kafka_callback);
 
       series_of(task)->push_back(next_task);
 
@@ -154,7 +163,7 @@ void kafka_callback(WFKafkaTask *task) {
   }
 
   if (!next_task) {
-    client.deinit();
+    client_kafka.deinit();
     wait_group.done();
   }
 }
@@ -163,8 +172,42 @@ void sig_handler(int signo) {
   wait_group.done();
 }
 
+void init() {
+  if (config_key.load(
+          "/home/rings/searchEngine/src/stronly/client.conf") ==
+      false) {
+    perror("Load config failed");
+    exit(1);
+  }
+  if (config_page.load(
+          "/home/rings/searchEngine/src/stronly/client_page.conf") ==
+      false) {
+    perror("Load config failed");
+    exit(1);
+  }
+}
+
 int main(int argc, char *argv[]) {
   signal(SIGINT, sig_handler);
+
+  // 1. load config
+  init();
+
+  // 2. start client
+  srpc::RPCClientParams params = srpc::RPC_CLIENT_PARAMS_DEFAULT;
+  params.host = config_key.client_host();
+  params.port = config_key.client_port();
+
+  stronly::SRPCClient rpc_client(&params);
+  config_key.load_filter(rpc_client);
+
+  // page client
+  srpc::RPCClientParams params_page = srpc::RPC_CLIENT_PARAMS_DEFAULT;
+  params_page.host = config_page.client_host();
+  params_page.port = config_page.client_port();
+
+  stronly::SRPCClient rpc_client_page(&params_page);
+  config_key.load_filter(rpc_client_page);
 
   // example:
   // kafka://10.160.23.23:9000,10.123.23.23,kafka://kafka.sogou
@@ -172,7 +215,7 @@ int main(int argc, char *argv[]) {
   std::string sugesturl = "http://localhost:9882/";
   std::string weburl = "http://localhost:9883/";
 
-  if (client.init(kafkaurl) < 0) {
+  if (client_kafka.init(kafkaurl) < 0) {
     perror("client.init");
     exit(1);
   }
@@ -180,25 +223,50 @@ int main(int argc, char *argv[]) {
   HttpServer svr;
 
   // 搜索词推荐
-  svr.GET("/sug/{key}",
-          [&sugesturl](const HttpReq *req, HttpResp *resp) {
-            std::string key(req->param("key"));
+  svr.GET(
+      "/sug/{key}",
+      [&sugesturl, &rpc_client](const HttpReq *req, HttpResp *resp) {
+        std::string key(req->param("key"));
 
-            UrlCoder::decode(key);
-            UrlCoder::decode(key);
-            resp->Http(sugesturl + key);
-          });
+        UrlCoder::decode(key);
+        UrlCoder::decode(key);
+
+        // 3. request with sync api
+        EchoRequest req_rpc;
+        EchoResponse resp_rpc;
+        srpc::RPCSyncContext ctx_rpc;
+
+        req_rpc.set_message(key);
+        rpc_client.Echo(&req_rpc, &resp_rpc, &ctx_rpc);
+
+        if (ctx_rpc.success)
+          resp->Json(resp_rpc.message());
+        else
+          resp->Error(503);
+      });
 
   // 网页搜索
   svr.GET(
       "/s/{key}",
-      [&weburl](
+      [&weburl, &rpc_client_page](
           const HttpReq *req, HttpResp *resp, SeriesWork *series) {
         std::string key(req->param("key"));
 
         UrlCoder::decode(key);
         UrlCoder::decode(key);
-        resp->Http(weburl + key);
+
+        // 3. request with sync api
+        EchoRequest req_rpc;
+        EchoResponse resp_rpc;
+        srpc::RPCSyncContext ctx_rpc;
+
+        req_rpc.set_message(key);
+        rpc_client_page.Echo(&req_rpc, &resp_rpc, &ctx_rpc);
+
+        if (ctx_rpc.success)
+          resp->Json(resp_rpc.message());
+        else
+          resp->Error(503);
       });
 
   // 把跳转的信息送给 kafka
@@ -209,7 +277,7 @@ int main(int argc, char *argv[]) {
         std::string url(dec.begin(), dec.end());
         Json jump_info = Json::parse(url);
 
-        auto task = client.create_kafka_task(
+        auto task = client_kafka.create_kafka_task(
             "api=produce", 3, kafka_callback);
         protocol::KafkaConfig config;
         protocol::KafkaRecord record;
@@ -236,7 +304,7 @@ int main(int argc, char *argv[]) {
                          jump_info["url"].get<std::string>());
       });
 
-  if (svr.track().start(8888) == 0) {
+  if (svr.start(8888) == 0) {
     wait_group.wait();
     svr.stop();
   } else {

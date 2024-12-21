@@ -11,7 +11,7 @@ int main() {
   assert(status.ok());
 
   std::string value("hello");
-  db->Put(leveldb::WriteOptions(), "key1", value);
+
   leveldb::Status s = db->Get(leveldb::ReadOptions(), "key1", &value);
   if (s.ok())
     s = db->Put(leveldb::WriteOptions(), "key2", value);

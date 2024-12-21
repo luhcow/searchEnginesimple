@@ -70,7 +70,7 @@ void create_xml(const char* Path) {
 
 int main() {
   tinyxml2::XMLDocument doc;
-  auto err = doc.LoadFile(
+  doc.LoadFile(
       "/home/rings/searchEngine/data/人民网语料/finance.xml");
 
   tinyxml2::XMLElement* findElement = doc.FirstChildElement("rss");

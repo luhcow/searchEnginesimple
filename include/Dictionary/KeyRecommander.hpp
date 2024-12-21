@@ -5,7 +5,9 @@
 #include <fmt/ranges.h>
 #include <leveldb/db.h>
 
+#include <cctype>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <queue>
 #include <set>
@@ -33,6 +35,7 @@ class KeyRecommander {
     std::string js;
     db->Get(leveldb::ReadOptions(), std::to_string(c), &js);
     nlohmann::json json;
+    std::cerr << js << "\n";
     json = nlohmann::json::parse(js);
     std::set<int> get_set = json;
 
@@ -106,6 +109,9 @@ class KeyRecommander {
   }
 
   nlohmann::json execute(std::string word) {
+    for (char& c : word) {
+      c = std::tolower(c);
+    }
     utf8::iterator<std::string::iterator> beg(
         word.begin(), word.begin(), word.end());
     utf8::iterator<std::string::iterator> end(

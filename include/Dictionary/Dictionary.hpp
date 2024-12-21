@@ -55,13 +55,13 @@ class DirScanner {
         continue;
       }
       if (entry->d_type == DT_DIR) {
-        char new_src[255];
-        sprintf(new_src, "%s/%s", path.c_str(), entry->d_name);
+        std::string new_src;
+        new_src = path + "/" + entry->d_name;
         traverse(new_src);
       }
       if (entry->d_type != DT_DIR) {
-        char new_src[255];
-        sprintf(new_src, "%s/%s", path.c_str(), entry->d_name);
+        std::string new_src;
+        new_src = path + "/" + entry->d_name;
         files_.push_back(new_src);
       }
     }
@@ -245,6 +245,7 @@ class DictProducer {
       db->Put(leveldb::WriteOptions(),
               std::to_string(i.first),
               json.dump());
+      std::cerr << json.dump() << "\n";
     }
     delete db;
 

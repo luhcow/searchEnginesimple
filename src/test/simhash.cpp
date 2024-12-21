@@ -21,7 +21,6 @@ int main(int argc, char** argv) {
   cout << "文本：\"" << s << "\"" << endl;
   cout << "关键词序列是: " << res << endl;
   cout << "simhash值是: " << u64 << endl;
-  cout << (14769886308824657336 >= LONG_MAX) << endl;
 
   Simhasher content;
 
