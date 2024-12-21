@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project(SearchEngine VERSION 0.1.0 LANGUAGES C CXX)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 set(CMAKE_CXX_FLAGS -Wunused-variable)
@@ -41,10 +41,10 @@ ADD_EXECUTABLE(simhash src/test/simhash.cpp)
 add_executable(jieba src/test/jieba.cpp)
 
 add_executable(keyWord src/keyWord.cc)
-target_link_libraries(keyWord fmt )
+target_link_libraries(keyWord fmt leveldb)
 
 add_executable(keyServer src/Server/KeyServer.cc)
-target_link_libraries(keyServer wfrest fmt ${WORKFLOW_LIB})
+target_link_libraries(keyServer wfrest fmt ${WORKFLOW_LIB} leveldb)
 
 add_executable(xml src/test/xmlParseForRSS.cc submodules/tinyxml2/tinyxml2.cpp)
 
@@ -52,7 +52,16 @@ add_executable(page src/page.cc submodules/tinyxml2/tinyxml2.cpp)
 target_link_libraries(page fmt)
 
 add_executable(pageq src/test/pageq.cc)
-target_link_libraries(pageq fmt)
+target_link_libraries(pageq fmt xapian)
 
 add_executable(PageServer src/Server/PageServer.cc)
-target_link_libraries(PageServer wfrest fmt)
+target_link_libraries(PageServer wfrest fmt xapian)
+
+add_executable(bptest src/test/bpteat.cc )
+target_link_libraries(bptest leveldb)
+
+add_executable(xiapian src/xiapian.cc )
+target_link_libraries(xiapian xapian)
+
+add_executable(xiapiansea src/xapiansea.cc )
+target_link_libraries(xiapiansea xapian)

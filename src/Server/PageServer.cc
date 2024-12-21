@@ -25,8 +25,7 @@ void sig_handler(int signo) {
 int main(int argc, char *argv[]) {
   signal(SIGINT, sig_handler);
 
-  WebPageQuery webpagequery(
-      "/home/rings/searchEngine/data/newoffset.dat");
+  WebPageQuery webpagequery("/home/rings/searchEngine/data/page_db");
 
   wfrest::HttpServer svr;
 

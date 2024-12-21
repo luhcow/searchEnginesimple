@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <leveldb/db.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -15,6 +16,7 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/utility.hpp>
 #include <cereal/types/vector.hpp>
+#include <fstream>
 #include <functional>
 #include <future>
 #include <iostream>
@@ -26,6 +28,7 @@
 #include <utility>
 #include <vector>
 
+#include "bpt.h"
 #include "cppjieba/Jieba.hpp"
 #include "ihsah.hpp"
 #include "json.hpp"
@@ -222,7 +225,29 @@ class DictProducer {
       IndexTool::map(dict_[i].first, i, index_);
     }
   }
+
+  bool is_file_exist(const char* fileName) {
+    std::ifstream ifile(fileName);
+    return ifile.good();
+  }
+
   void store() {
+    leveldb::DB* db;
+    leveldb::Options options;
+    options.create_if_missing = true;
+    leveldb::Status status = leveldb::DB::Open(
+        options, "/home/rings/searchEngine/data/testdb", &db);
+    assert(status.ok());
+
+    for (auto& i : index_) {
+      nlohmann::json json;
+      json = i.second;
+      db->Put(leveldb::WriteOptions(),
+              std::to_string(i.first),
+              json.dump());
+    }
+    delete db;
+
     std::ofstream os(dat_file_, std::ios::binary);
     cereal::BinaryOutputArchive archive(os);
     archive(dict_, index_);

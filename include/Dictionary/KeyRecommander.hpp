@@ -3,6 +3,7 @@
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <leveldb/db.h>
 
 #include <functional>
 #include <map>
@@ -20,10 +21,22 @@ class KeyRecommander {
       std::function<void(std::vector<std::pair<std::string, int>>&,
                          std::map<int, std::set<int>>&)> load) {
     load(dict_, index_);
+
+    leveldb::Options options;
+    options.create_if_missing = true;
+    leveldb::Status status = leveldb::DB::Open(
+        options, "/home/rings/searchEngine/data/testdb", &db);
+    assert(status.ok());
   }
 
   void queryIndexTable(int c, std::set<int>& index) {
-    index.insert(index_[c].begin(), index_[c].end());
+    std::string js;
+    db->Get(leveldb::ReadOptions(), std::to_string(c), &js);
+    nlohmann::json json;
+    json = nlohmann::json::parse(js);
+    std::set<int> get_set = json;
+
+    index.insert(get_set.begin(), get_set.end());
   }
 
   int utf8_edit_distance(const std::string& str1,
@@ -112,9 +125,14 @@ class KeyRecommander {
     return json;
   }
 
+  void close() {
+    delete db;
+  }
+
  private:
   std::vector<std::pair<std::string, int>> dict_;
   std::map<int, std::set<int>> index_;
+  leveldb::DB* db;
 };
 
 #endif

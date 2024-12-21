@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <xapian.h>
 
 #include <cmath>
 #include <fstream>
@@ -25,116 +26,50 @@
 
 class WebPageQuery {
  public:
-  WebPageQuery(std::string bina) {
-    std::ifstream is(bina, std::ios::binary);
-    cereal::BinaryInputArchive archive(is);
-
-    archive(page_list_, true_map_, invert_index_lib_, page_index_);
-    // fmt::print("page-list is {}", page_list_);
-    fd_ = open("/home/rings/searchEngine/data/newripepage.dat",
-               O_RDONLY);
+  WebPageQuery(std::string bina) : db_(bina) {
   }
 
   nlohmann::json executeQuery(std::string sentence) {
-    std::vector<std::string> words;
-    jieba_.Cut(sentence, words, true);
-    auto weight = getQueryWordsWeightVector(words);
+    // 对查询关键词进行分词
+    std::vector<std::string> query_words;
+    jieba_.Cut(sentence, query_words);
 
-    fmt::print("weight before is {}\n", weight);
-
-    std::map<std::string, std::map<int, double>> query;
-
-    for (auto& key : weight) {
-      query[key.first].insert(invert_index_lib_[key.first].begin(),
-                              invert_index_lib_[key.first].end());
+    // 将分词结果拼接为以空格分隔的字符串
+    std::string query_tokens = "";
+    for (const auto& word : query_words) {
+      query_tokens += word + " ";
     }
 
-    for (auto it = query.begin(); it != query.end();) {
-      if (it->second.size() < 1) {
-        it = query.erase(it);  // erase 返回指向下一个有效元素的迭代器
-      } else {
-        ++it;  // 如果不删除，则手动递增迭代器
-      }
-    }
+    // 创建 QueryParser
+    Xapian::QueryParser query_parser;
+    query_parser.add_prefix("title", "S");  // 设置前缀（标题字段）
 
-    fmt::print("\nquery is {}\n", query);
-    // 获取网页交集
-    std::set<int> get_page;
-    auto fir = query.begin();
-    if (fir == query.end()) {
-      nlohmann::json json;
-      json = nullptr;
-      return json;
-    }
-    for (auto& j : (*(fir)).second) {
-      get_page.insert(j.first);
-    }
-    fmt::print("\nget_page before is {}\n", get_page);
-    for (auto& i : query) {
-      std::vector<int> ready_delete;
+    // 解析查询
+    Xapian::Query query = query_parser.parse_query(query_tokens);
 
-      for (auto& j : get_page) {
-        if (i.second.count(j) == 0) {
-          ready_delete.push_back(j);
-        }
-      }
-      for (auto j : ready_delete) {
-        get_page.erase(j);
-      }
-    }
-    fmt::print("\nget_page is {}\n", get_page);
-    // 计算余弦相似度
-    std::map<int, double> candidate;
+    // 创建 Enquire 对象用于执行查询
+    Xapian::Enquire enquire(db_);
+    enquire.set_query(query);
 
-    for (auto& i : get_page) {
-      double xy = 0, X2 = 0, Y2 = 0;
-      for (auto& j : words) {
-        auto y = invert_index_lib_[j][i];
-        xy += weight[j] * y;
-        X2 += pow(weight[j], 2);
-        Y2 += pow(y, 2);
-      }
-      double cos = xy / (sqrt(X2) * sqrt(Y2));
-      candidate[i] = cos;
-    }
-
-    // 优先级队列找前十个
-    std::function<bool(std::pair<int, double>&,
-                       std::pair<int, double>&)>
-        com = [](std::pair<int, double>& lhs,
-                 std::pair<int, double>& rhs) -> bool {
-      return lhs.second > rhs.second;
-    };
-
-    std::priority_queue<std::pair<int, double>,
-                        std::vector<std::pair<int, double>>,
-                        std::function<bool(std::pair<int, double>&,
-                                           std::pair<int, double>&)>>
-        que(com);
-
-    for (auto& i : candidate) {
-      que.push(i);
-    }
+    // 获取查询结果（返回前 10 个结果）
+    Xapian::MSet matches = enquire.get_mset(0, 10);
 
     nlohmann::json json;
 
-    for (int i = 0; i < std::min(10, (int)que.size()); i++) {
-      nlohmann::json page =
-          nlohmann::json::parse(page_list_[que.top().first](fd_));
-      json[i]["title"] = page["title"];
-      json[i]["link"] = page["link"];
+    for (Xapian::MSetIterator it = matches.begin();
+         it != matches.end();
+         ++it) {
+      nlohmann::json json_one;
+      Xapian::Document doc = it.get_document();
 
-      // std::string tem(
-      //     page["content"].get<std::string>().begin(),
-      //     page["content"].get<std::string>().begin() +
-      //         std::min(
-      //             40,
-      //             (int)page["content"].get<std::string>().length()));
+      json_one["title"] =
+          doc.get_data().substr(0, doc.get_data().find("\n"));
+      json_one["link"] = doc.get_value(1);
+      json_one["content"] =
+          doc.get_data().substr(doc.get_data().find("\n") + 1);
 
-      json[i]["content"] = page["content"];
-      que.pop();
+      json.push_back(json_one);
     }
-
     return json;
   }
   std::map<std::string, double> getQueryWordsWeightVector(
@@ -194,6 +129,7 @@ class WebPageQuery {
   std::map<std::string, std::map<int, double>> invert_index_lib_;
   std::map<int, std::map<std::string, int>> page_index_;
   cppjieba::Jieba jieba_;
+  Xapian::Database db_;
   int fd_;
 };
 
