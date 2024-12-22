@@ -3,10 +3,10 @@
 #include <csignal>
 #include <string>
 
-#include "/home/rings/searchEngine/src/stronly/config/config.h"
-#include "/home/rings/searchEngine/src/stronly/stronly.srpc.h"
+#include "config/config.h"
 #include "cppcodec/base64_url.hpp"
 #include "srpc/rpc_types.h"
+#include "stronly.srpc.h"
 #include "urlcode.hpp"
 #include "wfrest/HttpServer.h"
 #include "workflow/KafkaDataTypes.h"
@@ -82,8 +82,7 @@ void kafka_callback(WFKafkaTask *task) {
         std::string out;
 
         for (const auto &v : records) {
-          if (v.empty())
-            continue;
+          if (v.empty()) continue;
 
           char fn[1024];
           snprintf(fn,
@@ -103,15 +102,13 @@ void kafka_callback(WFKafkaTask *task) {
             const void *value;
             size_t value_len;
             w->get_value(&value, &value_len);
-            if (fp)
-              fwrite(value, value_len, 1, fp);
+            if (fp) fwrite(value, value_len, 1, fp);
             std::cerr << value;
             offset = w->get_offset();
             partition = w->get_partition();
             topic = w->get_topic();
 
-            if (!no_cgroup)
-              next_task->add_commit_record(*w);
+            if (!no_cgroup) next_task->add_commit_record(*w);
           }
 
           if (!topic.empty()) {
@@ -120,14 +117,12 @@ void kafka_callback(WFKafkaTask *task) {
             out += ",offset: " + std::to_string(offset) + ";";
           }
 
-          if (fp)
-            fclose(fp);
+          if (fp) fclose(fp);
         }
 
         printf("fetch\t%s\n", out.c_str());
 
-        if (!no_cgroup)
-          series_of(task)->push_back(next_task);
+        if (!no_cgroup) series_of(task)->push_back(next_task);
       }
 
       break;
@@ -168,9 +163,7 @@ void kafka_callback(WFKafkaTask *task) {
   }
 }
 
-void sig_handler(int signo) {
-  wait_group.done();
-}
+void sig_handler(int signo) { wait_group.done(); }
 
 void init() {
   if (config_key.load(

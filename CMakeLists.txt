@@ -92,7 +92,7 @@ set(SNAPPY_LIB snappy)
 find_package(ZLIB REQUIRED)
 
 # Generate idl code: xx.srpc.h xx.pb.h xx.pb.cc xx.thrift.h
-set(IDL_FILE /home/rings/searchEngine/src/stronly/stronly.proto)
+set(IDL_FILE ${SearchEngine_SOURCE_DIR}/src/stronly/stronly.proto)
 set(SRPC_GEN_PROGRAM ${SRPC_BIN_DIR}/srpc_generator) 
 find_program(PROTOC "protoc")
 if(${PROTOC} STREQUAL "PROTOC-NOTFOUND")
@@ -101,7 +101,7 @@ endif ()
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${IDL_FILE})
 
 add_custom_target(SRPC_GEN ALL
-    COMMAND ${SRPC_GEN_PROGRAM} ${PROJECT_SOURCE_DIR}/${IDL_FILE} ${PROJECT_SOURCE_DIR} -s
+    COMMAND ${SRPC_GEN_PROGRAM} ${IDL_FILE} ${PROJECT_SOURCE_DIR} -s
     COMMENT "srpc generator..."
 )
 
@@ -120,7 +120,7 @@ set(COMMON_CODE ${SearchEngine_SOURCE_DIR}/src/stronly/config/config.cc ${Search
 # Build executable outputs
 set(PROJECT_OUTPUT server client pageserver)
 foreach(output ${PROJECT_OUTPUT})
-    add_executable(${output} /home/rings/searchEngine/src/stronly/${output}_main.cc ${COMMON_CODE})
+    add_executable(${output} ${SearchEngine_SOURCE_DIR}/src/stronly/${output}_main.cc ${COMMON_CODE})
     target_link_libraries(${output} ${LIB})
 endforeach()
 
