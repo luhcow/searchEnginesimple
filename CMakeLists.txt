@@ -15,8 +15,7 @@ include_directories(${SearchEngine_SOURCE_DIR}/include
 	${SearchEngine_SOURCE_DIR}/include/helper 
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/include
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/deps/limonp/include
-	${SearchEngine_SOURCE_DIR}/submodules/tinyxml2
-	${SearchEngine_SOURCE_DIR}/submodules/lru/include)
+	${SearchEngine_SOURCE_DIR}/submodules/tinyxml2)
 
 find_library(LIBRT rt)
 find_package(OpenSSL REQUIRED)

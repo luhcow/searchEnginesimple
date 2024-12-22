@@ -22,9 +22,9 @@ class lru_cache {
   typedef
       typename std::list<key_value_pair_t>::iterator list_iterator_t;
 
-  list_iterator_t begin() { _cache_items_list.begin(); }
+  list_iterator_t begin() { return _cache_items_list.begin(); }
 
-  list_iterator_t end() { _cache_items_list.end(); }
+  list_iterator_t end() { return _cache_items_list.end(); }
 
   lru_cache(size_t max_size) : _max_size(max_size) {}
 
