@@ -16,7 +16,6 @@ include_directories(${SearchEngine_SOURCE_DIR}/include
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/include
 	${SearchEngine_SOURCE_DIR}/submodules/cppjieba/deps/limonp/include
 	${SearchEngine_SOURCE_DIR}/submodules/tinyxml2
-	${SearchEngine_SOURCE_DIR}/submodules/lru/include
 	${OPENSSL_INCLUDE_DIR}
 	${Protobuf_INCLUDE_DIR}
     ${WORKFLOW_INCLUDE_DIR} 
