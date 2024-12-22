@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project(SearchEngine VERSION 0.1.0 LANGUAGES C CXX)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 set(CMAKE_CXX_FLAGS -Wunused-variable)
@@ -56,3 +56,5 @@ target_link_libraries(pageq fmt)
 
 add_executable(PageServer src/Server/PageServer.cc)
 target_link_libraries(PageServer wfrest fmt)
+
+add_executable(clsm src/clm.cc)
