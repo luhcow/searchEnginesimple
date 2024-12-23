@@ -35,7 +35,6 @@ class KeyRecommander {
     std::string js;
     db->Get(leveldb::ReadOptions(), std::to_string(c), &js);
     nlohmann::json json;
-    std::cerr << js << "\n";
     json = nlohmann::json::parse(js);
     std::set<int> get_set = json;
 
