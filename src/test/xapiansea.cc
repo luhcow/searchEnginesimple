@@ -8,7 +8,7 @@
 int main() {
   cppjieba::Jieba jieba;
   // 打开 Xapian 数据库（只读模式）
-  std::string db_path = "/home/rings/searchEngine/data/page_db";
+  std::string db_path = "/home/rings/searchEnginesimple/data/page_db";
   Xapian::Database db(db_path);
 
   // 用户输入的查询关键词

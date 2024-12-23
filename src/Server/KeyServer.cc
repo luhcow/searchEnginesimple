@@ -23,13 +23,11 @@
 
 static WFFacilities::WaitGroup wait_group(1);
 
-void sig_handler(int signo) {
-  wait_group.done();
-}
+void sig_handler(int signo) { wait_group.done(); }
 
 KeyRecommander keyrecommander(
     std::bind(&dictionary::DictProducer::load,
-              "/home/rings/searchEngine/data/dictIndex.dat",
+              "/home/rings/searchEnginesimple/data/dictIndex.dat",
               std::placeholders::_1,
               std::placeholders::_2));
 

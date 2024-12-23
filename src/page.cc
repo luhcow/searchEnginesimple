@@ -2,7 +2,7 @@
 
 int main() {
   Page::PageLibPreprocessor p(
-      {"/home/rings/searchEngine/corpus/people"});
+      {"/home/rings/searchEnginesimple/corpus/people"});
   p.cutRedundantPage();
 
   p.buildDict();

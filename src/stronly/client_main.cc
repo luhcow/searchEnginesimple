@@ -12,7 +12,7 @@ static srpc::RPCConfig config;
 
 void init() {
   if (config.load(
-          "/home/rings/searchEngine/src/stronly/client.conf") ==
+          "/home/rings/searchEnginesimple/src/stronly/client.conf") ==
       false) {
     perror("Load config failed");
     exit(1);

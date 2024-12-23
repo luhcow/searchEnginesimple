@@ -2,7 +2,7 @@
 
 int main() {
   dictionary::DictProducer dicp(
-      "/home/rings/searchEngine/conf/files.json");
+      "/home/rings/searchEnginesimple/conf/files.json");
   dicp.buildDict();
   dicp.creatIndex();
   dicp.store();

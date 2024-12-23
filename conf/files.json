@@ -1,11 +1,11 @@
 {
     "text": [
-        "/home/rings/searchEngine/corpus/art"
+        "/home/rings/searchEnginesimple/corpus/art"
     ],
     "stop": [
-        "/home/rings/searchEngine/corpus/stop_words_eng.txt",
-        "/home/rings/searchEngine/corpus/stop_words_zh.txt"
+        "/home/rings/searchEnginesimple/corpus/stop_words_eng.txt",
+        "/home/rings/searchEnginesimple/corpus/stop_words_zh.txt"
     ],
     "zone": 10,
-    "data": "/home/rings/searchEngine/data/dictIndex.dat"
+    "data": "/home/rings/searchEnginesimple/data/dictIndex.dat"
 }

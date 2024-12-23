@@ -236,7 +236,7 @@ class DictProducer {
     leveldb::Options options;
     options.create_if_missing = true;
     leveldb::Status status = leveldb::DB::Open(
-        options, "/home/rings/searchEngine/data/testdb", &db);
+        options, "/home/rings/searchEnginesimple/data/testdb", &db);
     assert(status.ok());
 
     for (auto& i : index_) {

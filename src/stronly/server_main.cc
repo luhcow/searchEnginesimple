@@ -20,17 +20,15 @@ static srpc::RPCConfig config;
 
 KeyRecommander keyrecommander(
     std::bind(&dictionary::DictProducer::load,
-              "/home/rings/searchEngine/data/dictIndex.dat",
+              "/home/rings/searchEnginesimple/data/dictIndex.dat",
               std::placeholders::_1,
               std::placeholders::_2));
 
-void sig_handler(int signo) {
-  wait_group.done();
-}
+void sig_handler(int signo) { wait_group.done(); }
 
 void init() {
   if (config.load(
-          "/home/rings/searchEngine/src/stronly/server.conf") ==
+          "/home/rings/searchEnginesimple/src/stronly/server.conf") ==
       false) {
     perror("Load config failed");
     exit(1);

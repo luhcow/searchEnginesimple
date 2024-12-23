@@ -167,14 +167,13 @@ void sig_handler(int signo) { wait_group.done(); }
 
 void init() {
   if (config_key.load(
-          "/home/rings/searchEngine/src/stronly/client.conf") ==
+          "/home/rings/searchEnginesimple/src/stronly/client.conf") ==
       false) {
     perror("Load config failed");
     exit(1);
   }
-  if (config_page.load(
-          "/home/rings/searchEngine/src/stronly/client_page.conf") ==
-      false) {
+  if (config_page.load("/home/rings/searchEnginesimple/src/stronly/"
+                       "client_page.conf") == false) {
     perror("Load config failed");
     exit(1);
   }

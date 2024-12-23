@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
   string id("2");
 
   string s(std::move(ReadAll::read(
-      "/home/rings/searchEngine/data/The_Holy_Bible.txt")));
+      "/home/rings/searchEnginesimple/data/The_Holy_Bible.txt")));
 
   // 定义正则表达式：匹配中文字符之间的换行符
   std::regex pattern("([\u4e00-\u9fa5])\n+([\u4e00-\u9fa5])");

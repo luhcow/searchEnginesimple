@@ -20,7 +20,7 @@ def read_json_objects(file_path):
     return json_list
 
 # Example usage
-file_path = '/home/rings/searchEngine/data/newripepage.dat'
+file_path = '/home/rings/searchEnginesimple/data/newripepage.dat'
 result_list = read_json_objects(file_path)
 id_json=[]
 i=0
@@ -32,5 +32,5 @@ for result_json in result_list:
     json_str_list.append(json.dumps(result_json))
 print(result_list)
 
-with open("/home/rings/searchEngine/data/output.json", "w", encoding="utf-8") as file:
+with open("/home/rings/searchEnginesimple/data/output.json", "w", encoding="utf-8") as file:
     json.dump(result_list, file, ensure_ascii=False, indent=4)

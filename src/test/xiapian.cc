@@ -10,7 +10,7 @@
 int main() {
   cppjieba::Jieba jieba;
   // 创建或打开 Xapian 数据库（路径：./example_db）
-  std::string db_path = "/home/rings/searchEngine/data/page_db";
+  std::string db_path = "/home/rings/searchEnginesimple/data/page_db";
   Xapian::WritableDatabase db(db_path, Xapian::DB_CREATE_OR_OPEN);
 
   // 定义文章数据
@@ -24,7 +24,8 @@ int main() {
   std::vector<Document> documents;
 
   // 打开文件
-  std::ifstream file("/home/rings/searchEngine/data/output.json");
+  std::ifstream file(
+      "/home/rings/searchEnginesimple/data/output.json");
 
   nlohmann::json json;
   file >> json;

@@ -50,13 +50,13 @@ class DirScanner {
         continue;
       }
       if (entry->d_type == DT_DIR) {
-        char new_src[255];
-        sprintf(new_src, "%s/%s", path.c_str(), entry->d_name);
+        std::string new_src;
+        new_src = path + entry->d_name;
         traverse(new_src);
       }
       if (entry->d_type != DT_DIR) {
-        char new_src[255];
-        sprintf(new_src, "%s/%s", path.c_str(), entry->d_name);
+        std::string new_src;
+        new_src = path + entry->d_name;
         files_.push_back(new_src);
       }
     }
@@ -374,8 +374,9 @@ class PageLibPreprocessor {
   }
 
   void storeOnDisk() {
-    std::ofstream os("/home/rings/searchEngine/data/newoffset.dat",
-                     std::ios::binary);
+    std::ofstream os(
+        "/home/rings/searchEnginesimple/data/newoffset.dat",
+        std::ios::binary);
     cereal::BinaryOutputArchive archive(os);
     archive(page_list_, true_map_, invert_index_lib_, page_index_);
   }
@@ -388,8 +389,8 @@ class PageLibPreprocessor {
       }
     }
 
-    std::string s(
-        ReadAll::read("/home/rings/searchEngine/conf/files.json"));
+    std::string s(ReadAll::read(
+        "/home/rings/searchEnginesimple/conf/files.json"));
     nlohmann::json json = nlohmann::json::parse(s);
 
     for (int i = 0; i < json["stop"].size(); i++) {
@@ -402,14 +403,12 @@ class PageLibPreprocessor {
     }
     zone_ = 10;
 
-    fd_ = open("/home/rings/searchEngine/data/newripepage.dat",
+    fd_ = open("/home/rings/searchEnginesimple/data/newripepage.dat",
                O_RDWR | O_CREAT | O_TRUNC,
                0666);
   }
 
-  void close_fd() {
-    close(fd_);
-  }
+  void close_fd() { close(fd_); }
 
  private:
   std::vector<std::string> files_;

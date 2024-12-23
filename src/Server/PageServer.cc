@@ -18,14 +18,13 @@
 
 static WFFacilities::WaitGroup wait_group(1);
 
-void sig_handler(int signo) {
-  wait_group.done();
-}
+void sig_handler(int signo) { wait_group.done(); }
 
 int main(int argc, char *argv[]) {
   signal(SIGINT, sig_handler);
 
-  WebPageQuery webpagequery("/home/rings/searchEngine/data/page_db");
+  WebPageQuery webpagequery(
+      "/home/rings/searchEnginesimple/data/page_db");
 
   wfrest::HttpServer svr;
 

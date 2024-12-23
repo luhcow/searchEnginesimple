@@ -17,16 +17,14 @@ std::string redis_url = "redis://127.0.0.1:16379/1";
 static WFFacilities::WaitGroup wait_group(1);
 static srpc::RPCConfig config;
 
-WebPageQuery webpagequery("/home/rings/searchEngine/data/page_db");
+WebPageQuery webpagequery(
+    "/home/rings/searchEnginesimple/data/page_db");
 
-void sig_handler(int signo) {
-  wait_group.done();
-}
+void sig_handler(int signo) { wait_group.done(); }
 
 void init() {
-  if (config.load(
-          "/home/rings/searchEngine/src/stronly/pageserver.conf") ==
-      false) {
+  if (config.load("/home/rings/searchEnginesimple/src/stronly/"
+                  "pageserver.conf") == false) {
     perror("Load config failed");
     exit(1);
   }

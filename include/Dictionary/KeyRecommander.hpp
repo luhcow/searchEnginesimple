@@ -27,7 +27,7 @@ class KeyRecommander {
     leveldb::Options options;
     options.create_if_missing = true;
     leveldb::Status status = leveldb::DB::Open(
-        options, "/home/rings/searchEngine/data/testdb", &db);
+        options, "/home/rings/searchEnginesimple/data/testdb", &db);
     assert(status.ok());
   }
 
@@ -131,9 +131,7 @@ class KeyRecommander {
     return json;
   }
 
-  void close() {
-    delete db;
-  }
+  void close() { delete db; }
 
  private:
   std::vector<std::pair<std::string, int>> dict_;
